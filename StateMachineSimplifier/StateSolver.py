@@ -159,8 +159,21 @@ for d in decimals:
         decimals.remove(d)
         primes.pop(prime_index)
         prime_index -= 1
-        print("D:{0}".format(d))
     prime_index += 1
 
-print(primes)
+# Form Equation
+equation = ""
+for i in range(0, len(primes)):
+    letter = 65
+    for char in primes[i]:
+        if char == "0":
+            equation += chr(letter) + "'"
+        elif char == "1":
+            equation += chr(letter)
+        letter += 1
+    if i < len(primes)-1:
+        equation += " + "
+
+print(equation)
+    
             
