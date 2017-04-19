@@ -190,25 +190,48 @@ def getEquation(essentials):
             equation += " + "
     return equation
 
+# Convert state table to transition table
+# Return transition table
+def convert(table):
+    bnums = []
+    for row in table:
+        nums = []
+        for col in row:
+            minterm = states[int(col)][0]
+
+            # Add 0's for shorter numbers
+            if len(minterm) < numVars-1:
+                minterm = "0"*((numVars-1)-len(minterm)) + minterm
+                
+            nums.append(minterm)
+        bnums.append(nums)
+    return bnums
+
 
 # Flag for user input
 inputting = True
+# Store row of table and added to table when full
+arr = []
 # User prompts for which state they enter
 prompts = ["Current State", "Next State when X = 0",
            "Next State when X = 1","Output"]
 # Track if inputted all columns
 count = 0
-# Store data for transition table, 2D array
+
+# Store data for state table, 2D array
 table = [["0","0","1","0"],
          ["1","2","1","0"],
          ["2","0","3","0"],
          ["3","2","1","1"]]
-# Store row of table and added to table when full
-"""arr = []
-print("Transition Table - Enter all values as decimal numbers\n")
+
+# Store all state assignments, each has a value to use in permutation
+states = [["00",1],["01",2],["10",3],["11",4]]
+
+
+"""print("State Table - Enter all values as decimal numbers\n")
 while inputting:
     
-    # Prompt user to fill out Transition Table
+    # Prompt user to fill out state Table
     arr.append(int(raw_input("Enter the {0}: ".format(prompts[count]))))
     count += 1
     # Finished row
@@ -220,80 +243,183 @@ while inputting:
         if answer.lower() == 'q':
             inputting = False"""
 
-# Convert inputted decimal numbers to binary numbers
-bnums = []
-for row in table:
-    nums = []
-    for col in row:
-        minterm = bin(int(col)).replace("0b","",1)
+def bestTotal(arr):
+    total = 0
+    for i in arr:
+        total += len(i)
+    return total
 
-        # Add 0's for shorter numbers
-        if len(minterm) < numVars-1:
-            minterm = "0"*((numVars-1)-len(minterm)) + minterm
-            
-        nums.append(minterm)
-    bnums.append(nums)
+permutation = True
+end = len(states)-1
+best = []
+bestStates = 0
+for i in range(0, len(table[0])-1):
+    best.append("x"*(len(table[0])*numVars))
+while permutation:
+    # Create transmission table from state table and state assignments
+    Ttable = convert(table)
+    # Find all terms for each equation
+    A = []
+    B = []
+    Z = []
+    for row in Ttable:
+        #A+ terms
+        if list(row[1])[0] == "1":
+            A.append("0" + row[0])
+        elif list(row[2])[0] == "1":
+            A.append("1" + row[0])
+        #B+ terms
+        if list(row[1])[1] == "1":
+            B.append("0" + row[0])
+        elif list(row[2])[1] == "1":
+            B.append("1" + row[0])
+        #Output terms
+        if row[3][1] == "1":
+            Z.append("-" + row[0][0] + row[0][1])
 
-# Find all terms for each equation
-A = []
-B = []
-Z = []
-for row in bnums:
-    #A+ terms
-    if list(row[1])[0] == "1":
-        A.append("0" + row[0])
-    elif list(row[2])[0] == "1":
-        A.append("1" + row[0])
-    #B+ terms
-    if list(row[1])[1] == "1":
-        B.append("0" + row[0])
-    elif list(row[2])[1] == "1":
-        B.append("1" + row[0])
-    #Output terms
-    if row[3][1] == "1":
-        Z.append("-" + row[0][0] + row[0][1])
+    # Sort each array for solving
+    A = sortTerms(A)
+    B = sortTerms(B)
+    Z = sortTerms(Z)
 
-print(Z)
-# Sort each array for solving
-A = sortTerms(A)
-B = sortTerms(B)
-Z = sortTerms(Z)
+    # Perform Quine McCluskey method and store result
+    A = quine(A)
+    B = quine(B)
+    Z = quine(Z)
 
-print("Sorted: ")
-print(Z)
-print("-------------------------------")
+    # Extract prime implicants and store result
+    A = getPrimeImplicants(A)
+    B = getPrimeImplicants(B)
+    Z = getPrimeImplicants(Z)
 
-# Perform Quine McCluskey method and store result
-A = quine(A)
-B = quine(B)
-Z = quine(Z)
+    # Find essential prime implicants and store result
+    A = getEssentials(A)
+    B = getEssentials(B)
+    Z = getEssentials(Z)
 
-print("Quine: ")
-print(Z)
-print("-------------------------------")
+    # Show results
+    equationA = getEquation(A)
+    equationB = getEquation(B)
+    equationZ = getEquation(Z)
+    print("State Assignments: S0={0}, S1={1}, S2={2}, S3={3}"
+          .format(states[0][0],states[1][0],states[2][0],states[3][0]))
+    print("A+: " + equationA)
+    print("B+: " + equationB)
+    print("Z:  " + equationZ)
+    print("---------------------------------------------------")
 
-# Extract prime implicants and store result
-A = getPrimeImplicants(A)
-B = getPrimeImplicants(B)
-Z = getPrimeImplicants(Z)
+    # Check for smallest equation
+    total = len(equationA) + len(equationB) + len(equationZ)
+    totalarr = [equationA, equationB, equationZ]
+    if total < bestTotal(best):
+        bestStates = states
+        for i in range(0, len(best)):
+            best[i] = totalarr[i]
+    
+    index = 0
+    # Swap last two digits
+    temp = states[end]
+    states[end] = states[end-1]
+    states[end-1] = temp
 
-print("Primes: ")
-print(Z)
-print("-------------------------------")
+    # Create transmission table from state table and state assignments
+    Ttable = convert(table)
+    # Find all terms for each equation
+    A = []
+    B = []
+    Z = []
+    for row in Ttable:
+        #A+ terms
+        if list(row[1])[0] == "1":
+            A.append("0" + row[0])
+        elif list(row[2])[0] == "1":
+            A.append("1" + row[0])
+        #B+ terms
+        if list(row[1])[1] == "1":
+            B.append("0" + row[0])
+        elif list(row[2])[1] == "1":
+            B.append("1" + row[0])
+        #Output terms
+        if row[3][1] == "1":
+            Z.append("-" + row[0][0] + row[0][1])
 
-# Find essential prime implicants and store result
-A = getEssentials(A)
-B = getEssentials(B)
-Z = getEssentials(Z)
+    # Sort each array for solving
+    A = sortTerms(A)
+    B = sortTerms(B)
+    Z = sortTerms(Z)
 
-print("Essentials: ")
-print(Z)
-print("-------------------------------")
+    # Perform Quine McCluskey method and store result
+    A = quine(A)
+    B = quine(B)
+    Z = quine(Z)
 
-# Show results
-print(getEquation(A))
-print(getEquation(B))
-print(getEquation(Z))
+    # Extract prime implicants and store result
+    A = getPrimeImplicants(A)
+    B = getPrimeImplicants(B)
+    Z = getPrimeImplicants(Z)
+
+    # Find essential prime implicants and store result
+    A = getEssentials(A)
+    B = getEssentials(B)
+    Z = getEssentials(Z)
+
+    # Show results
+    equationA = getEquation(A)
+    equationB = getEquation(B)
+    equationZ = getEquation(Z)
+    print("State Assignments: S0={0}, S1={1}, S2={2}, S3={3}"
+          .format(states[0][0],states[1][0],states[2][0],states[3][0]))
+    print("A+: " + equationA)
+    print("B+: " + equationB)
+    print("Z:  " + equationZ)
+    print("---------------------------------------------------")
+
+    # Check for smallest equation
+    total = len(equationA) + len(equationB) + len(equationZ)
+    totalarr = [equationA, equationB, equationZ]
+    if total < bestTotal(best):
+        bestStates = states
+        for i in range(0, len(best)):
+            best[i] = totalarr[i]
+    
+    
+    # Store index of end of group
+    last = -1
+    for i,e in reversed(list(enumerate(states))):
+        if not e[1] > last:
+            index = i
+            break
+        last = e[1]
+
+    # Re-order group
+    # Swap first digit with next highest
+    least = 999
+    index2 = 0
+    for i,e in list(enumerate(states[index+1:])):
+        # Find next higehst
+        if (abs(e[1]-states[index][1]) < least) and e[1] > states[index][1]:
+            least = abs(e[1]-states[index][1])
+            # Store index
+            index2 = i + index + 1
+
+    # Swap
+    temp = states[index]
+    states[index] = states[index2]
+    states[index2] = temp
+
+    # Order other digits
+    states[index+1:] = sorted(states[index+1:])      
+
+    # Check for end
+    for i,e in reversed(list(enumerate(states))):
+        if e[1] > last:
+            permutation = False
+
+print("Best Equations")
+print("State Assignments: S0={0}, S1={1}, S2={2}, S3={3}"
+        .format(states[0][0],states[1][0],states[2][0],states[3][0]))
+for b in best:
+    print(b)
 
 
 
