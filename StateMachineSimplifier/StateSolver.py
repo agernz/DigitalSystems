@@ -14,33 +14,26 @@ def clear_screen():
 # Sort a group of terms into smaller groups based on # of 1's
 # Return sorted array
 def sortTerms(arr):
+    numones = 0
     numsorted = 0
     sorted_bnums = []
     while numsorted < len(arr):
-        sorted_bnums.append([])
-        for i in range (0, len(arr)):
-             if arr[i].count("1") == numsorted:
-                sorted_bnums[numsorted].append(arr[i])
-           
-        numsorted += 1
+        group = []
+        for term in arr:
+             if term.count("1") == numones:
+                 numsorted += 1
+                 group.append(term)
+        # Add group to list as long as there are terms in the group
+        if len(group) > 0:
+            sorted_bnums.append(group)
+        numones += 1
 
-    # Remove any empty boxes
-    limit = len(sorted_bnums)
-    count = 0
-    while count < limit:
-        if len(sorted_bnums[count]) == 0:
-            sorted_bnums.pop(count)
-            limit -= 1
-        else:
-            count += 1
-
-    # In case arr only had 1 term return array
-    if len(sorted_bnums) <= 1:
-        sorted_bnums.append(arr)
     return sorted_bnums
 
 # Variable length
 numVars = 3
+# State assignment length
+digits = numVars-1
 
 # Perform the Quine McCluskey method
 # Mark used values with a '*',
@@ -197,11 +190,15 @@ def convert(table):
     for row in table:
         nums = []
         for col in row:
-            minterm = states[int(col)][0]
+
+            if len(col) >= digits:
+                minterm = states[int(col[digits-1])][0]
+            else:
+                minterm = col
 
             # Add 0's for shorter numbers
-            if len(minterm) < numVars-1:
-                minterm = "0"*((numVars-1)-len(minterm)) + minterm
+            if len(minterm) < digits:
+                minterm = "0"*((digits)-len(minterm)) + minterm
                 
             nums.append(minterm)
         bnums.append(nums)
@@ -219,10 +216,10 @@ prompts = ["Current State", "Next State when X = 0",
 count = 0
 
 # Store data for state table, 2D array
-table = [["0","0","1","0"],
-         ["1","2","1","0"],
-         ["2","0","3","0"],
-         ["3","2","1","1"]]
+table = [["s0","s0","s1","0"],
+         ["s1","s2","s1","0"],
+         ["s2","s0","s3","0"],
+         ["s3","s2","s1","1"]]
 
 # Store all state assignments, each has a value to use in permutation
 states = [["00",1],["01",2],["10",3],["11",4]]
@@ -264,14 +261,14 @@ while permutation:
     Z = []
     for row in Ttable:
         #A+ terms
-        if list(row[1])[0] == "1":
+        if row[1][0] == "1":
             A.append("0" + row[0])
-        elif list(row[2])[0] == "1":
+        if row[2][0] == "1":
             A.append("1" + row[0])
         #B+ terms
-        if list(row[1])[1] == "1":
+        if row[1][1] == "1":
             B.append("0" + row[0])
-        elif list(row[2])[1] == "1":
+        if row[2][1] == "1":
             B.append("1" + row[0])
         #Output terms
         if row[3][1] == "1":
@@ -330,14 +327,14 @@ while permutation:
     Z = []
     for row in Ttable:
         #A+ terms
-        if list(row[1])[0] == "1":
+        if row[1][0] == "1":
             A.append("0" + row[0])
-        elif list(row[2])[0] == "1":
+        if row[2][0] == "1":
             A.append("1" + row[0])
         #B+ terms
-        if list(row[1])[1] == "1":
+        if row[1][1] == "1":
             B.append("0" + row[0])
-        elif list(row[2])[1] == "1":
+        if row[2][1] == "1":
             B.append("1" + row[0])
         #Output terms
         if row[3][1] == "1":
